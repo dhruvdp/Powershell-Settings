@@ -202,7 +202,57 @@ function Get-DirWithSize
   Get-DirSize $dir
 }
 
-# git related functions and aliases
+function Add-Path {
+  <#
+    .SYNOPSIS
+      Adds a Directory to the Current Path
+    .DESCRIPTION
+      Add a directory to the current path.  This is useful for 
+      temporary changes to the path or, when run from your 
+      profile, for adjusting the path within your powershell 
+      prompt.
+    .EXAMPLE
+      Add-Path -Directory "C:\Program Files\Notepad++"
+    .PARAMETER Directory
+      The name of the directory to add to the current path.
+  #>
+
+  [CmdletBinding()]
+  param (
+    [Parameter(
+      Mandatory=$True,
+      ValueFromPipeline=$True,
+      ValueFromPipelineByPropertyName=$True,
+      HelpMessage='What directory would you like to add?')]
+    [Alias('dir')]
+    [string[]]$Directory
+  )
+
+  PROCESS {
+    $Path = $env:PATH.Split(';')
+
+    foreach ($dir in $Directory) {
+      if ($Path -contains $dir) {
+        Write-Verbose "$dir is already present in PATH"
+      } else {
+        if (-not (Test-Path $dir)) {
+          Write-Verbose "$dir does not exist in the filesystem"
+        } else {
+          $Path += $dir
+        }
+      }
+    }
+
+    $env:PATH = [String]::Join(';', $Path)
+  }
+}
+#Add-Path -Directory “C:\Program Files (x86)\Notepad++”
+#Set-Alias edit notepad++.exe
+
+#Add-Path –Directory “C:\Program Files\Splunk\bin”
+#Add-Path –Directory “C:\Program Files (x86)\PuTTY”
+
+# git related functions
 function get-gitbranch { git branch }
 function get-gitbranchall { git branch -a }
 function get-gitconfiglist { git config -l }
@@ -210,11 +260,29 @@ function get-gitlog { git log }
 function get-gitlogpretty { git lg-pretty }
 function get-gitlogplaintext { git lg-plaintext }
 function get-gitlogalt { git lg-alt }
+function get-gitresethard { git reset --hard }
 function get-gitstash { git stash -l }
 function get-gitstatus2 { git status }
 function get-gitsvnfetch { git svn fetch }
 function get-gitsvnrebase { git svn rebase }
 function get-gitsvndcommit { git svn dcommit }
+
+# php/symfony/doctrine related functions
+function php-app-console { php app/console $args }
+function php-generate { php app/console generate:$args }
+function php-doctrine-migration-diff { php app/console doctrine:migration:diff $args }
+function php-doctrine-migration-migrate { php app/console doctrine:migration:migrate $args }
+function php-cache-clear { php app/console cache:clear }
+function php-cache-warmup { php app/console cache:warmup }
+function php-deploy { php deployer.phar }
+function php-deploy-development { php deployer.phar deploy ny_development }
+function php-deploy-staging { php deployer.phar deploy ny_staging }
+function php-deploy-production { php deployer.phar deploy ny_production }
+# z - folder jumper related functions
+# z - update working directory
+function z-uwd { Update-NavigationHistory $pwd.Path }
+# ssh / firehost related functions
+function ssh-firehost { ssh 146.88.97.168 -P 22 -l jay -i ..\..\.ssh\id_rsa.ppk }
 
 ####################################
 # end of functions
@@ -243,6 +311,7 @@ $env:Path += ";$(Split-Path $PROFILE)\Scripts"
 
 Import-Module z
 Set-Alias z Search-NavigationHistory
+Set-Alias uz z-uwd
 
 # set the aliases that we like
 Set-Alias -Name cdto -Value Set-LocationTo
@@ -256,7 +325,8 @@ Set-Alias -Name "cd.." -Value GoUp
 Set-Alias -Name "..." -Value GoUpUp
 Set-Alias -Name home -Value GoHome
 Set-Alias -Name pp -Value Edit-DTWCleanScript
-
+Set-Alias -Name addp -Value Add-Path
+# git aliases
 Set-Alias -Name g -Value Git.exe
 Set-Alias -Name gb -Value get-gitbranch
 Set-Alias -Name gba -Value get-gitbranchall
@@ -265,15 +335,29 @@ Set-Alias -Name glg -Value get-gitlog
 Set-Alias -Name glgp -Value get-gitlogpretty
 Set-Alias -Name glgt -Value get-gitlogplaintext
 Set-Alias -Name glga -Value get-gitlogalt
+Set-Alias -Name grh -Value get-gitresethard
 Set-Alias -Name gs -Value get-gitstatus2
 Set-Alias -Name gst -Value get-gitstash
 Set-Alias -Name gsvnf -Value get-gitsvnfetch
 Set-Alias -Name gsvnr -Value get-gitsvnrebase
 Set-Alias -Name gsvnc -Value get-gitsvndcommit
+# php aliases
+Set-Alias -Name phpac -Value php-app-console
+Set-Alias -Name phpgen -Value php-generate
+Set-Alias -Name phpmd -Value php-doctrine-migration-diff
+Set-Alias -Name phpmm -Value php-doctrine-migration-migrate
+Set-Alias -Name phpcc -Value php-cache-clear
+Set-Alias -Name phpcw -Value php-cache-warmup
+Set-Alias -Name dep -Value php-deploy
+Set-Alias -Name depdev -Value php-deploy-development
+Set-Alias -Name depstage -Value php-deploy-staging
+Set-Alias -Name depprod -Value php-deploy-production
+# firehost connection aliases
+Set-Alias -Name ss -Value ssh-firehost
 
-## I determine which modules to pre-load here (in this SIGNED script)
+## I determine which modules to pre-load hesolire (in this SIGNED script)
 $AutoModules = 'PsGet', 'PoshCode', 'PSCX', 'DTW.PS.PrettyPrinterV1.psd1'
-## 'Autoload', 'Authenticode', 'HttpRest', 'Strings', 'ResolveAliases', 'PowerTab', 'sqlps', 
+## 'PSReadline', 'Autoload', 'Authenticode', 'HttpRest', 'Strings', 'ResolveAliases', 'PowerTab', 'sqlps', 
 ###################################################################################################
 ## Preload all the modules in AutoModules, printing out their names in color based on status
 ## No errors while loading modules (I will save them and print them out later)
